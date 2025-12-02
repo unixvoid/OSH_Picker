@@ -10,6 +10,9 @@ import random
 import argparse
 import re
 import sys
+import time
+import os
+import json
 from urllib.parse import urljoin
 
 
@@ -17,6 +20,9 @@ class OSHParkScraper:
     """Scrapes OSHPark shared projects and filters by criteria"""
     
     BASE_URL = "https://oshpark.com/shared_projects"
+    CACHE_DIR = ".sitemap_cache"
+    CACHE_FILE = os.path.join(CACHE_DIR, "sitemap.json")
+    CACHE_TTL = 30 * 60  # 30 minutes in seconds
     
     def __init__(self, keyword=None, max_price=None, records_per_page=100, layers=None, verbose=False):
         """
@@ -44,19 +50,56 @@ class OSHParkScraper:
         if self.verbose:
             print(message, file=sys.stderr)
     
+    def _is_cache_valid(self):
+        """Check if sitemap cache exists and is less than 30 minutes old"""
+        if not os.path.exists(self.CACHE_FILE):
+            return False
+        
+        file_age = time.time() - os.path.getmtime(self.CACHE_FILE)
+        return file_age < self.CACHE_TTL
+    
+    def _load_cache(self):
+        """Load projects from cache file"""
+        try:
+            with open(self.CACHE_FILE, 'r') as f:
+                data = json.load(f)
+                self._log(f"Loaded sitemap from cache ({len(data)} projects)")
+                return data
+        except (IOError, json.JSONDecodeError) as e:
+            self._log(f"Error loading cache: {e}")
+            return None
+    
+    def _save_cache(self, projects):
+        """Save projects to cache file"""
+        try:
+            os.makedirs(self.CACHE_DIR, exist_ok=True)
+            with open(self.CACHE_FILE, 'w') as f:
+                json.dump(projects, f)
+                self._log(f"Saved sitemap to cache ({len(projects)} projects)")
+        except IOError as e:
+            self._log(f"Error saving cache: {e}")
+    
     def get_project_ids(self):
         """Fetch and search the sitemap for all matching projects"""
-        try:
-            self._log(f"Fetching sitemap from OSHPark...")
-            response = self.session.get(self.BASE_URL, timeout=15)
-            response.raise_for_status()
-        except requests.RequestException as e:
-            self._log(f"Error fetching sitemap: {e}")
-            return []
-        
-        # Parse the sitemap to extract projects with their titles and descriptions
-        projects = self._parse_sitemap(response.text)
-        self._log(f"Parsed {len(projects)} total projects from sitemap")
+        # Try to load from cache first
+        if self._is_cache_valid():
+            projects = self._load_cache()
+        else:
+            # Fetch from OSHPark
+            try:
+                self._log(f"Fetching sitemap from OSHPark...")
+                response = self.session.get(self.BASE_URL, timeout=15)
+                response.raise_for_status()
+            except requests.RequestException as e:
+                self._log(f"Error fetching sitemap: {e}")
+                return []
+            
+            # Parse the sitemap to extract projects with their titles and descriptions
+            projects = self._parse_sitemap(response.text)
+            self._log(f"Parsed {len(projects)} total projects from sitemap")
+            
+            # Save to cache
+            self._save_cache(projects)
         
         # Filter by keyword if specified
         if self.keyword:

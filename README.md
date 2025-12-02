@@ -85,22 +85,21 @@ URL: https://oshpark.com/shared_projects/LFLycZxZ
 
 ## How It Works
 
-1. **Fetch Project List**: Scrapes OSHPark's shared projects page for all available projects
-2. **Filter by Keyword** (optional): Narrows the project pool using title/description matching
-3. **Random Selection Loop**: Randomly picks projects from the pool and checks each one until finding a match
-4. **Apply Filters**: Validates that the board meets all criteria:
+1. **Check Sitemap Cache**: Looks for a cached sitemap (updated every 30 minutes)
+2. **Fetch/Parse Project List**: Uses cached sitemap if available, otherwise fetches from OSHPark
+3. **Filter by Keyword** (optional): Narrows the project pool using title/description matching
+4. **Random Selection Loop**: Randomly picks projects from the pool and checks each one until finding a match
+5. **Apply Filters**: Validates that the board meets all criteria:
    - Layer count
    - Price (if max-price specified)
-5. **Return Match**: Returns the first board that matches all filters
+6. **Return Match**: Returns the first board that matches all filters
 
 ## About Keyword Searching
 
 OSHPark's search is fully client-side (JavaScript) - the server doesn't filter results. This script works around that by:
-- Fetching individual project pages
-- Searching the page content for your keyword
-- Since keywords are sparse, you may need to increase `--max-projects` to find matches
-
-For example, ESP32 boards appear in roughly 1 per 100 projects, so you might need `--max-projects 300` or higher.
+- Using cached sitemap metadata (title/description) for fast keyword filtering
+- Only fetching individual project pages for boards that might match
+- The cache keeps keyword searches instant after the first run
 
 ## Performance Notes
 
@@ -108,6 +107,16 @@ For example, ESP32 boards appear in roughly 1 per 100 projects, so you might nee
 - Then randomly samples projects until finding a match
 - Each project check requires fetching one webpage (~40-50KB)
 - Typically finds a match within 5-15 requests for common filters
+
+## Caching
+
+The script automatically caches the sitemap to `.sitemap_cache/sitemap.json`. The cache is considered fresh for 30 minutes.
+
+- **First run**: Fetches sitemap from OSHPark and saves to cache
+- **Subsequent runs (within 30 minutes)**: Uses cached sitemap (skips network request entirely)
+- **After 30 minutes**: Automatically refreshes the cache with fresh data from OSHPark
+
+This dramatically reduces query load and improves performance for repeated runs.
 
 ## Limitations
 
