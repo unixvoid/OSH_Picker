@@ -165,6 +165,8 @@ class OSHParkScraper:
             title = "Unknown Board"
             price = None
             layer_count = None
+            dimensions = None
+            description = None
             
             # Find layer count (must match one of the allowed layers)
             layer_pattern = r'(\d+)\s*layer\s*board'
@@ -195,6 +197,29 @@ class OSHParkScraper:
                 if not title:
                     title = f"Board {project_id}"
             
+            # Try to find the actual project title in the h3 tag within project__row__header-content
+            # Use DOTALL to handle potential newlines
+            h3_title_match = re.search(r'project__row__header-content[^>]*>.*?<h3[^>]*>([^<]+)</h3>', html_content, re.DOTALL)
+            if h3_title_match:
+                h3_title = h3_title_match.group(1).strip()
+                if h3_title:
+                    title = h3_title
+            
+            # Extract dimensions - look for pattern like "1.64 x 1.10 inches"
+            dimensions_pattern = r'([\d.]+)\s*[x×]\s*([\d.]+)\s*inches.*?\(([\d.]+)\s*[x×]\s*([\d.]+)\s*mm\)'
+            dimensions_match = re.search(dimensions_pattern, html_content, re.IGNORECASE)
+            if dimensions_match:
+                dimensions = {
+                    'inches': f"{dimensions_match.group(1)} x {dimensions_match.group(2)}",
+                    'mm': f"{dimensions_match.group(3)} x {dimensions_match.group(4)}"
+                }
+            
+            # Extract description from meta description tag
+            description_pattern = r'<meta\s+name="description"\s+content="([^"]+)"'
+            description_match = re.search(description_pattern, html_content)
+            if description_match:
+                description = description_match.group(1).strip()
+            
             # If we couldn't find a price, skip this board
             if price is None:
                 self._log(f"  {project_id}: No price found, skipping")
@@ -212,7 +237,9 @@ class OSHParkScraper:
                 'url': project_url,
                 'price': price,
                 'project_id': project_id,
-                'layer_count': layer_count
+                'layer_count': layer_count,
+                'dimensions': dimensions,
+                'description': description
             }
         
         except Exception as e:

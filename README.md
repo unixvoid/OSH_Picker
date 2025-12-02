@@ -2,6 +2,8 @@
 
 A Python script that scrapes [OSHPark's shared projects](https://oshpark.com/shared_projects/) and returns a random PCB design matching your criteria.
 
+**Try it live**: Visit [bitnuke.io/osh-picker/](https://bitnuke.io/osh-picker/) to use the web interface!
+
 ## Features
 
 - Pick a random PCB design from OSHPark

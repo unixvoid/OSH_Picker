@@ -1,6 +1,9 @@
 # Sitemap cache
 .sitemap_cache/
 
+# Build artifacts
+stage.tmp/
+
 # Python
 __pycache__/
 *.py[cod]
