@@ -23,6 +23,7 @@ build: clean
 		-t $(IMAGE_NAME):$(IMAGE_TAG) \
 		-t $(IMAGE_NAME):latest \
 		--progress=plain \
+		--no-cache \
 		.
 	@echo "Build complete!"
 	@$(DOCKER_ARGS) docker images | grep $(IMAGE_NAME)

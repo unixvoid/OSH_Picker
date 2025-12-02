@@ -4,13 +4,15 @@ Flask web server for OSHPark Random Board Picker
 """
 
 from flask import Flask, request, jsonify
+from werkzeug.middleware.proxy_fix import ProxyFix
 import sys
 from random_board import OSHParkScraper
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 
-@app.route('/api/board', methods=['GET'])
+@app.route('/osh-picker/api/board', methods=['GET'])
 def get_board():
     """
     Get a random board matching the specified criteria
@@ -79,13 +81,13 @@ def get_board():
         }), 500
 
 
-@app.route('/api/health', methods=['GET'])
+@app.route('/osh-picker/api/health', methods=['GET'])
 def health():
     """Health check endpoint"""
     return jsonify({'status': 'ok'}), 200
 
 
-@app.route('/', methods=['GET'])
+@app.route('/osh-picker/', methods=['GET'])
 def index():
     """Simple HTML interface"""
     return '''
@@ -365,7 +367,7 @@ def index():
             loadingDiv.style.display = 'block';
             
             try {
-                const response = await fetch(`/api/board?${params.toString()}`);
+                const response = await fetch(`/osh-picker/api/board?${params.toString()}`);
                 const data = await response.json();
                 
                 loadingDiv.style.display = 'none';
