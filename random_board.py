@@ -18,7 +18,7 @@ class OSHParkScraper:
     
     BASE_URL = "https://oshpark.com/shared_projects"
     
-    def __init__(self, keyword=None, max_price=None, records_per_page=100, max_projects=200, layers=None, verbose=False):
+    def __init__(self, keyword=None, max_price=None, records_per_page=100, layers=None, verbose=False):
         """
         Initialize scraper with filtering criteria
         
@@ -26,14 +26,12 @@ class OSHParkScraper:
             keyword: Search term for board designs (optional)
             max_price: Maximum price for 3-board option (optional)
             records_per_page: Number of results per page (default 100)
-            max_projects: Maximum number of projects to fetch (default 200)
             layers: List of layer counts to include (default [2])
             verbose: Print status messages (optional)
         """
         self.keyword = keyword
         self.max_price = max_price
         self.records_per_page = records_per_page
-        self.max_projects = max_projects
         self.layers = layers if layers else [2]  # Default to 2-layer only
         self.verbose = verbose
         self.session = requests.Session()
@@ -47,7 +45,7 @@ class OSHParkScraper:
             print(message, file=sys.stderr)
     
     def get_project_ids(self):
-        """Fetch and search the sitemap for matching projects"""
+        """Fetch and search the sitemap for all matching projects"""
         try:
             self._log(f"Fetching sitemap from OSHPark...")
             response = self.session.get(self.BASE_URL, timeout=15)
@@ -68,10 +66,10 @@ class OSHParkScraper:
                        keyword_lower in (p['description'] or '').lower()]
             self._log(f"Found {len(projects)} projects matching keyword '{self.keyword}'")
         
-        # Extract project IDs and limit to max_projects
-        project_ids = [p['id'] for p in projects[:self.max_projects]]
+        # Extract project IDs (use entire pool)
+        project_ids = [p['id'] for p in projects]
         
-        self._log(f"Will check {len(project_ids)} projects (limited to {self.max_projects})")
+        self._log(f"Using pool of {len(project_ids)} projects")
         return project_ids
     
     def _parse_sitemap(self, html_content):
@@ -179,28 +177,31 @@ class OSHParkScraper:
             return None
     
     def get_random_board(self):
-        """Fetch boards and return a random one"""
-        # Get list of project IDs
+        """Pick random projects from the pool until finding one matching criteria"""
+        # Get list of all available project IDs
         project_ids = self.get_project_ids()
         
         if not project_ids:
             self._log("No projects found matching your search criteria.")
             return None
         
-        # Fetch details for each project and collect valid ones
-        valid_boards = []
-        for i, project_id in enumerate(project_ids):
-            self._log(f"Fetching project {i+1}/{len(project_ids)}: {project_id}")
+        # Shuffle to randomize order
+        shuffled_ids = project_ids.copy()
+        random.shuffle(shuffled_ids)
+        
+        self._log(f"Checking random projects from pool of {len(project_ids)}...")
+        
+        # Try each random project until we find one that meets criteria
+        for project_id in shuffled_ids:
+            self._log(f"Checking project: {project_id}")
             board_data = self.fetch_project_details(project_id)
             if board_data:
-                valid_boards.append(board_data)
+                self._log(f"Found matching board: {board_data['title']}")
+                return board_data
         
-        if not valid_boards:
-            self._log("No boards found matching your price criteria.")
-            return None
-        
-        self._log(f"Found {len(valid_boards)} boards matching all criteria")
-        return random.choice(valid_boards)
+        # If we exhausted the pool without finding a match
+        self._log("No boards found matching your criteria after checking all available projects.")
+        return None
 
 
 def main():
@@ -209,13 +210,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
-  %(prog)s                                        # Random 2-layer board
-  %(prog)s --keyword esp32                        # Random ESP32 board
-  %(prog)s --keyword esp32 --max-price 12         # Random ESP32 under $12 (3-board price)
-  %(prog)s --max-price 5                          # Random board under $5
-  %(prog)s --keyword stm32 --max-projects 200 -v  # Verbose output, check 200 projects
-  %(prog)s --layers 2 4 6                         # Include 2, 4, or 6 layer boards
-  %(prog)s --keyword esp32 --layers 4 6           # ESP32 boards with 4 or 6 layers
+  %(prog)s                                 # Random 2-layer board
+  %(prog)s --keyword esp32                 # Random ESP32 board
+  %(prog)s --keyword esp32 --max-price 12  # Random ESP32 under $12 (3-board price)
+  %(prog)s --max-price 5                   # Random board under $5
+  %(prog)s --keyword stm32 -v              # Verbose output
+  %(prog)s --layers 2 4 6                  # Include 2, 4, or 6 layer boards
+  %(prog)s --keyword esp32 --layers 4 6    # ESP32 boards with 4 or 6 layers
         '''
     )
     
@@ -233,12 +234,6 @@ Examples:
         type=int,
         default=100,
         help='Number of results per page (default: 100)'
-    )
-    parser.add_argument(
-        '--max-projects',
-        type=int,
-        default=200,
-        help='Maximum number of projects to check (default: 200)'
     )
     parser.add_argument(
         '--layers',
@@ -259,7 +254,6 @@ Examples:
         keyword=args.keyword,
         max_price=args.max_price,
         records_per_page=args.per_page,
-        max_projects=args.max_projects,
         layers=args.layers,
         verbose=args.verbose
     )

@@ -33,49 +33,24 @@ Returns a random 2-layer board with its price and OSHPark link.
 
 ### Examples
 
-**Get a random board under $5:**
 ```bash
+# Random 2-layer board
+python3 random_board.py
+
+# Random board under $5
 python3 random_board.py --max-price 5
-```
 
-**Find a random ESP32 board:**
-```bash
+# Find a random ESP32 board
 python3 random_board.py --keyword esp32
-```
 
-**Find an affordable ESP32 board (under $12):**
-```bash
+# ESP32 board under $12
 python3 random_board.py --keyword esp32 --max-price 12
-```
 
-**Search for 4-layer boards:**
-```bash
-python3 random_board.py --layers 4
-```
-
-**Include multiple layer counts (2, 4, or 6 layers):**
-```bash
+# Include 2, 4, and 6 layer boards
 python3 random_board.py --layers 2 4 6
-```
 
-**Find ESP32 boards with 4 or 6 layers:**
-```bash
-python3 random_board.py --keyword esp32 --layers 4 6
-```
-
-**Search for STM32 boards, checking up to 200 projects:**
-```bash
-python3 random_board.py --keyword stm32 --max-projects 200
-```
-
-**See what the script is doing (verbose mode):**
-```bash
+# Verbose output to see what's happening
 python3 random_board.py --keyword esp32 -v
-```
-
-**Combine all options:**
-```bash
-python3 random_board.py --keyword "Arduino" --max-price 15 --layers 2 4 --max-projects 200 --verbose
 ```
 
 ## Command-Line Options
@@ -83,7 +58,6 @@ python3 random_board.py --keyword "Arduino" --max-price 15 --layers 2 4 --max-pr
 ```
 --keyword TEXT          Search keyword (e.g., esp32, stm32, arduino)
 --max-price FLOAT       Maximum price for 3-board option (in dollars)
---max-projects INT      Maximum number of projects to check (default: 200)
 --per-page INT          Results per page from OSHPark (default: 100)
 --layers INT [INT ...]  PCB layer counts to include (default: 2)
                         Can specify multiple: --layers 2 4 6
@@ -111,18 +85,13 @@ URL: https://oshpark.com/shared_projects/LFLycZxZ
 
 ## How It Works
 
-1. **Get Project List**: Fetches the OSHPark shared projects page (which contains a sitemap of all ~26k projects)
-2. **Extract Project IDs**: Uses regex to find all project IDs from the response
-3. **Limit Results**: Takes only the first N projects (configurable, default 200) to keep search fast
-4. **Fetch Details**: Downloads each project page to extract:
-   - Price (3-board cost)
-   - Layer count
-   - Page content (for keyword matching)
-5. **Apply Filters**: Filters out boards that don't match your criteria:
+1. **Fetch Project List**: Scrapes OSHPark's shared projects page for all available projects
+2. **Filter by Keyword** (optional): Narrows the project pool using title/description matching
+3. **Random Selection Loop**: Randomly picks projects from the pool and checks each one until finding a match
+4. **Apply Filters**: Validates that the board meets all criteria:
    - Layer count
    - Price (if max-price specified)
-   - Keyword (if keyword specified - searches page content)
-6. **Pick Random**: Selects a random board from the matches
+5. **Return Match**: Returns the first board that matches all filters
 
 ## About Keyword Searching
 
@@ -135,13 +104,10 @@ For example, ESP32 boards appear in roughly 1 per 100 projects, so you might nee
 
 ## Performance Notes
 
-- Each project requires fetching a separate webpage (~40-50KB)
-- Default `--max-projects 200` will take ~30-60 seconds depending on your connection
-- OSHPark has ~26,000+ shared projects total
-- Use `--max-projects` to control how thorough the search is:
-  - **50**: ~15-20 seconds (quick, good for repeated runs)
-  - **200**: ~30-60 seconds (default, good balance)
-  - **500+**: ~2+ minutes (very thorough)
+- The script fetches the full project pool once (instant)
+- Then randomly samples projects until finding a match
+- Each project check requires fetching one webpage (~40-50KB)
+- Typically finds a match within 5-15 requests for common filters
 
 ## Limitations
 
@@ -153,14 +119,14 @@ For example, ESP32 boards appear in roughly 1 per 100 projects, so you might nee
 ## Troubleshooting
 
 **"No boards found matching your criteria"**
-- Try increasing `--max-projects` to search more boards
-- Try removing or changing your `--max-price` filter
-- Try removing your `--keyword` filter
+- Try removing or adjusting your `--max-price` filter
+- Try removing your `--keyword` filter to search the entire pool
+- Check that your layer count preference (`--layers`) isn't too restrictive
 
 **Script runs slowly**
-- This is expected - each project page must be fetched individually
-- Try using a smaller `--max-projects` value for faster results
-- For quick tests, use `--max-projects 50`
+- This is expected if you're using tight filters (specific keyword + low price)
+- Loosen your filters to find matches faster
+- Use `-v` flag to see what the script is checking
 
 ## License
 
