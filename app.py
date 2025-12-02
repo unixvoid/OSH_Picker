@@ -160,7 +160,13 @@ def index():
             height: 16px;
             display: inline-block;
         }
+        
+        .form-group {
             margin-bottom: 20px;
+        }
+        
+        .form-group:last-of-type {
+            margin-bottom: 30px;
         }
         
         label {
