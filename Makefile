@@ -1,4 +1,4 @@
-.PHONY: help build run clean
+.PHONY: help build run clean local dev
 
 # Variables
 IMAGE_NAME := osh-picker
@@ -11,9 +11,14 @@ DOCKER_ARGS := sudo
 # Targets
 help:
 	@echo "Available targets:"
+	@echo "  make dev         - Run Flask directly (port 5001)"
 	@echo "  make build       - Build the Docker image"
-	@echo "  make run         - Run the Docker container locally"
+	@echo "  make run         - Run the Docker container at port 5000"
 	@echo "  make clean       - Clean up build artifacts and containers"
+
+dev:
+	@echo "Starting Flask development server on port 5001"
+	PORT=5001 python3 app.py
 
 build: clean
 	@mkdir -p $(BUILD_DIR)
@@ -29,7 +34,7 @@ build: clean
 	@$(DOCKER_ARGS) docker images | grep $(IMAGE_NAME)
 
 run:
-	@echo "Starting container: $(IMAGE_NAME):$(IMAGE_TAG)"
+	@echo "Starting container: $(IMAGE_NAME):$(IMAGE_TAG) on port 5000"
 	$(DOCKER_ARGS) docker run -d \
 		-p 5000:5000 \
 		--restart unless-stopped \
