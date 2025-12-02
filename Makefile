@@ -29,7 +29,7 @@ build: clean
 
 run:
 	@echo "Starting container: $(IMAGE_NAME):$(IMAGE_TAG)"
-	$(DOCKER_ARGS) docker run -it --rm \
+	$(DOCKER_ARGS) docker run -d \
 		-p 5000:5000 \
 		--restart unless-stopped \
 		--name osh-picker \
