@@ -94,6 +94,8 @@ def index():
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OSHPark Random Board Picker</title>
     <style>
         * {
@@ -318,6 +320,22 @@ def index():
             color: #888;
             font-size: 12px;
             text-align: center;
+        }
+        
+        @media (max-width: 640px) {
+            .container {
+                margin: 20px auto;
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .board-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
         }
     </style>
 </head>
