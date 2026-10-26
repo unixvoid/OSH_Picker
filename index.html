@@ -394,15 +394,35 @@
             return projects;
         }
 
-        async function fetchSitemapProjects() {
-            const response = await fetch(OSHPARK_BASE, { redirect: 'follow' });
-            if (!response.ok) {
-                throw new Error(`could not load project list (HTTP ${response.status})`);
+        async function fetchSitemapProjects(onProgress) {
+            // OSHPark rotates its redirect target (no-cache) and the edge can serve
+            // transient failures - retry a few times before giving up.
+            const maxAttempts = 3;
+            let lastError = null;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                if (attempt > 1) {
+                    onProgress && onProgress(`retrying project list download (${attempt}/${maxAttempts})...`);
+                    await new Promise(r => setTimeout(r, 1500 * attempt));
+                }
+                try {
+                    // no-store: never reuse a stale/failed response from the browser HTTP cache
+                    const response = await fetch(OSHPARK_BASE, { redirect: 'follow', cache: 'no-store' });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    const projects = parseSitemap(await response.text());
+                    if (!projects.length) {
+                        throw new Error('sitemap parsed to 0 projects');
+                    }
+                    console.log(`parsed ${projects.length} total projects from sitemap`);
+                    await saveCachedProjects(projects);
+                    return projects;
+                } catch (e) {
+                    lastError = e;
+                    console.log(`sitemap attempt ${attempt}/${maxAttempts} failed: ${e.message}`);
+                }
             }
-            const projects = parseSitemap(await response.text());
-            console.log(`parsed ${projects.length} total projects from sitemap`);
-            await saveCachedProjects(projects);
-            return projects;
+            throw new Error(`could not load project list from OSHPark (${lastError && lastError.message}) - OSHPark regenerates its sitemap periodically, try again in a minute`);
         }
 
         async function getProjectPool(onProgress) {
@@ -411,7 +431,7 @@
                 return cached;
             }
             onProgress && onProgress('downloading project list from OSHPark (~23 MB, first visit only - cached for 30 min)...');
-            return await fetchSitemapProjects();
+            return await fetchSitemapProjects(onProgress);
         }
 
         function filterByKeyword(projects, keyword) {
