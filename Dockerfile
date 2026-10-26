@@ -28,6 +28,7 @@ WORKDIR /app
 # Copy application files
 COPY random_board.py .
 COPY app.py .
+COPY index.html .
 
 # Set environment variables
 ENV PATH="/opt/venv/bin:$PATH" \

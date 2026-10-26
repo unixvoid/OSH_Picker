@@ -2,7 +2,7 @@
 
 A Python script that scrapes [OSHPark's shared projects](https://oshpark.com/shared_projects/) and returns a random PCB design matching your criteria.
 
-**Try it live**: Visit [bitnuke.io/osh-picker/](https://bitnuke.io/osh-picker/) to use the web interface!
+**Try it live**: Visit [bitnuke.io/osh-picker/](https://bitnuke.io/osh-picker/) (server) or [unixvoid.github.io/OSH_Picker/](https://unixvoid.github.io/OSH_Picker/) (GitHub Pages) to use the web interface!
 
 ## Features
 
@@ -138,6 +138,23 @@ This dramatically reduces query load and improves performance for repeated runs.
 - This is expected if you're using tight filters (specific keyword + low price)
 - Loosen your filters to find matches faster
 - Use `-v` flag to see what the script is checking
+
+## Hosting on GitHub Pages
+
+The web UI (`index.html`) is a fully static, client-side app: the browser fetches the OSHPark sitemap and project pages directly (OSHPark sends `Access-Control-Allow-Origin: *`), so no server is required.
+
+To enable:
+
+1. Push this repo to GitHub
+2. **Settings → Pages → Source: Deploy from a branch → `master` / `(root)`**
+3. The site appears at `https://unixvoid.github.io/OSH_Picker/`
+
+Notes:
+
+- The first visit downloads the ~23 MB project sitemap once; it is cached in the browser (IndexedDB) for 30 minutes, mirroring the server-side `.sitemap_cache`
+- The random sampling loop is capped at 500 attempts per search (the server version could scan the entire ~27k project pool)
+- `index.html` is the single source of truth for the UI - the Flask app serves the same file, so local dev (`make dev`) and GitHub Pages stay in sync
+- `.nojekyll` disables Jekyll processing on GitHub Pages
 
 ## License
 
